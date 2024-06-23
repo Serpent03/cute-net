@@ -1,4 +1,5 @@
 #pragma once
+#include <stdbool.h>
 
 /* ==== DEFINITIONS & TYPES ==== */
 
@@ -31,12 +32,21 @@ typedef struct Layer {
   /* reserved for future..? */
 } Layer;
 
+typedef struct Training {
+  uint32 iteration;
+  float64 loss;
+  float64 (*loss_function)(float64 output, float64 input_label);
+  float64 learning_rate;
+} Training;
+
 typedef struct Network {
   Layer **layers;
   uint32 num_layers;
   uint32 *num_neurons_per_layer; /* each i-th value dictates number of neurons in layer i */
-  uint32 currLayer; /* global pointer for the current layer being fore/backpropagated. */
-  float64 (*activate)(float64); /* this is the activation function. */
+  uint32 currLayerIdx; /* global pointer for the current layer being fore/backpropagated. */
+  bool backprop;
+  float64 (*activate)(float64 sum); /* this is the activation function. */
+  Training *training;
 } Network;
 
 /**
@@ -45,6 +55,14 @@ typedef struct Network {
  * @return activated float64 value.
 */
 float64 leakyRELU(float64 value);
+
+/**
+ * @brief Mean Square Error cost function.
+ * @param output Output at the end of the network.
+ * @param input_label The expected output fed with the training data.
+ * @return mean squared error as a float64
+*/
+float64 meanSqErr(float64 output, float64 input_label); 
 
 /**
  * @brief Initialize a neuron.
@@ -65,7 +83,7 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes);
  * @brief Initialize a neural network.
  * @param num_neurons_per_layer The number of neurons per layer in the network, passed as an array.
   The num_neurons_per_layer array must be passed via reference(pointer) and should contain information in the 
-  format [ 2, 4, 4, 1 ], which translates to: 
+  format [ 2, 4, 4, 1 ], which translates to:
   - 2 input nodes, 
   - 4 neurons in the first hidden layer, 4 neurons in the second hidden layer,
   - 1 neuron in the output layer.
@@ -78,8 +96,18 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers);
  * @brief Forward propagation inside a neural network. Takes the data 
   from the input layer to the output layer.
  * @param network The neural network to propagate.
+ * @return False if the forward propagation has been completed to the output layer.
 */
-void forward_propagate(Network *network);
+bool forward_propagate(Network *network);
+
+/**
+ * @brief Backward propagation inside a neural network
+ * @param network The neural network to propagate.
+ * @return False if the backward propagation has been completed to the input layer.
+*/
+bool backward_propagate(Network *network);
+
+float64 *test_network(float64 *data, uint32 len, Network *network);
 
 /*
   During forward propagation, the workflow will be as such:
@@ -90,4 +118,5 @@ void forward_propagate(Network *network);
   >> Get the summation, and apply activation functions, and then put it in the <<Neuron>> in the next layer.
 */
 
+void populate_input(float64 *data, uint32 len, Network *network);
 void debug_network(Network *network);

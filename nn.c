@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 
@@ -27,11 +28,12 @@ Neuron *init_neuron(uint32 in_nodes) {
 
   n->weights = (float64*)calloc(in_nodes, sizeof(float64));
   n->num_weights = in_nodes;
-  n->bias = ((float64)(rand() % 100)) / 100;
+  n->bias = 0;
   n->value = 0;
 
   for (uint32 i = 0; i < n->num_weights; i++) {
-    n->weights[i] = ((float64)(rand() % 100)) / 100;
+    float64 wval = ((float64)(rand() % 200 - 100)) / 100; /* random value between -1 and 1 */
+    n->weights[i] = wval;
     /* randomize a value between 0 and 1. Will need a better system */
   }
   return n;
@@ -46,6 +48,15 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
   return l;
 }
 
+Training *init_training() {
+  Training *t = (Training*)calloc(1, sizeof(Training));
+  t->iteration = 0;
+  t->loss = 0.0f;
+  t->loss_function = &meanSqErr;
+  t->learning_rate = 0.001;
+  return t;
+}
+
 Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   srand(time(NULL)); /* At the start of the setup. */
 
@@ -54,8 +65,9 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   n->num_neurons_per_layer = (uint32*)calloc(n->num_layers, sizeof(uint32));
   memcpy(n->num_neurons_per_layer, num_neurons_per_layer, num_layers * sizeof(uint32));
   n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
-  n->currLayer = 0;
+  n->currLayerIdx = 0;
   n->activate = &leakyRELU;
+  n->training = init_training();
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);
@@ -67,19 +79,30 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
 
 float64 leakyRELU(float64 value) {
   /* ReLU is pretty much max(0, value). if we get negative values, however, we can quickly get
-  stuck. In that scenario, we simply do max(value * -0.01, value). If the value is positive, then we
+  stuck. In that scenario, we simply do max(value * -0.001, value). If the value is positive, then we
   choose it, otherwise we reduce its magnitude and change the direction, and take it. */
-  return value > value * -0.01 ? value : value * -0.01;
+  float64 activation = value > value * 0.001 ? value : value * 0.001;
+  return activation;
+}
+
+float64 meanSqErr(float64 output, float64 input_label) {
+  return (float64)pow(output - input_label, 2);
 }
 
 void debug_network(Network *network) { 
   for (uint32 i = 0; i < network->num_layers; i++) {
     for (uint32 j = 0; j < network->num_neurons_per_layer[i]; j++) {
       Neuron *curr = network->layers[i]->neurons[j];
-      printf("| V: %f, b: %f |", curr->value, curr->bias);
+      printf("| V: %f, b: %f [", curr->value, curr->bias);
+      for (uint32 k = 0; k < curr->num_weights; k++) {
+        printf(" ");
+        printf("%f", curr->weights[k]);
+      }
+      printf(" ] |");
     }
     printf("\n");
   }
+  printf("\n");
 }
 
 /* 
@@ -100,12 +123,14 @@ void debug_network(Network *network) {
   >> until we get to the output layer, where a MSE/etc are calculated for the cost analysis.
 */
 
-void forward_propagate(Network *network) {
-  if (network->currLayer >= network->num_layers - 1) {
-    return;
+bool forward_propagate(Network *network) {
+  if (network->currLayerIdx >= network->num_layers - 1) {
+    /* at this point, the result is available at the output layer.
+    we can fetch the activated result and move on with cost analysis. */
+    return false;
   }
-  uint32 currLayerIdx = network->currLayer;
-  network->currLayer++;
+  uint32 currLayerIdx = network->currLayerIdx;
+  network->currLayerIdx++;
 
   for (uint32 i = 0; i < network->num_neurons_per_layer[currLayerIdx + 1]; i++) {
     /* iterate through all neurons in the next layer. */
@@ -121,4 +146,40 @@ void forward_propagate(Network *network) {
     sum += nextNeuron->bias;
     nextNeuron->value = network->activate(sum); /* store the activated sum inside the next neuron */
   }
+  // debug_network(network);
+  return true;
 }
+
+bool backward_propagate(Network *network) {
+  if (network->currLayerIdx <= 0) {
+    return false;
+  }
+
+  return true;
+}
+
+float64 *test_network(float64 *data, uint32 len, Network *network) {
+  populate_input(data, len, network);
+  while (forward_propagate(network));
+  float64 *retdata = (float64*)malloc(network->num_neurons_per_layer[network->currLayerIdx] * sizeof(float64));
+  for (uint32 i = 0; i < network->num_neurons_per_layer[network->currLayerIdx]; i++) {
+    retdata[i] = network->layers[network->currLayerIdx]->neurons[i]->value;
+  }
+  network->currLayerIdx = 0;
+  return retdata;
+}
+
+void populate_input(float64 *data, uint32 len, Network *network) {
+  /* Make sure that the input data has the same dimensionality as the input layer. */
+  assert(len == network->num_neurons_per_layer[0]);
+  Layer *input_layer = network->layers[0];
+  for (uint32 i = 0; i < len; i++) {
+    input_layer->neurons[i]->value = data[i];
+  }
+}
+
+/*
+  Now to test out the network with custom weights/values. Once that is done, we can shift forward
+  and write the backpropagation logic, with the gradient descent and weighing in the neurons -- which is really where the meat of the matter is. Once that is done, we simply have to tie it all together into a testing/training
+  tool.
+*/
