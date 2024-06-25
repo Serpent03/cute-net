@@ -34,7 +34,7 @@ typedef struct Layer {
 
 typedef struct Training {
   uint32 iteration;
-  float64 loss;
+  float64 *loss; /* this stores all output neuron activation values. */
   float64 (*loss_function)(float64 output, float64 input_label);
   float64 learning_rate;
 } Training;

@@ -48,10 +48,10 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
   return l;
 }
 
-Training *init_training() {
+Training *init_training(uint32 output_layer_size) {
   Training *t = (Training*)calloc(1, sizeof(Training));
   t->iteration = 0;
-  t->loss = 0.0f;
+  t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
   t->loss_function = &meanSqErr;
   t->learning_rate = 0.001;
   return t;
@@ -67,7 +67,7 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
   n->currLayerIdx = 0;
   n->activate = &leakyRELU;
-  n->training = init_training();
+  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1]);
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);
@@ -154,8 +154,23 @@ bool backward_propagate(Network *network) {
   if (network->currLayerIdx <= 0) {
     return false;
   }
+  /* compute the loss and do some magic stuff here to influence weights.. */
 
   return true;
+}
+
+void train_network(Network *network, float64 **training_data, uint32 training_data_len, uint32 training_data_batch_len, float64 **label_data, uint32 label_data_batch_len, uint32 label_data_len) {
+  /* the training_data is a 2D array:
+    - There are training_data_batch_len number of batches
+    - Each batch has training_data_len number of inputs to be fed
+  */
+  for (uint32 i = 0; i < training_data_batch_len; i++) {
+    float64 *retdata = test_network(training_data[i], training_data_len, network);
+    network->currLayerIdx = network->num_layers - 1;
+    memcpy(network->training->loss, retdata, network->currLayerIdx * sizeof(float64));
+    free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
+    backward_propagate(network);
+  }
 }
 
 float64 *test_network(float64 *data, uint32 len, Network *network) {
