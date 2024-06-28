@@ -1,6 +1,6 @@
 
 # Cute-Net
-Cute-Net is a simple neural network made in C that can try to learn linear mathematical relationships.
+Cute-Net is a simple neural network made in C that is able to perform deep neural network learning using generalized functions.
 
 ## Pre-Requisites
 - C compiler (gcc/minGW)
@@ -25,15 +25,32 @@ There are two files of main interest:
 
 ## How does it work?
 
-Cute-net is a very tiny neural network: it only consists of one neural node(in other words, a perceptron), that tries to fit the given mathematical relation using gradient descent to the find the least error in the cost function. 
+CuteNet is a neural network able to generate network in a generalized fashion - any network from 1-1-1 to complex, MNIST-able networks like 784-16-16-10 can be generated using the generalized function.
 
 In `main.c`, there are some functions of interest:
-- `init_neuron`: This initializes a neuron node.
-- `set_input_neuron`: This registers the neuron as the first hidden layer.
-- `set_output_neuron`: This registers the neuron as the last hidden layer.
-- `train_nn`: This actually "trains" the weight attached to the neuron node.
-- `test_nn`: This tests the given input.   
+- `init_network`: This initializes a neural network of given dimensions.
+- `train_network`: This trains the network according to the given input.
+- `test_network`: This tests the network according to the current network weights.
+
+A general approach to using the functions would be:
+```C
+int layers[] = { 2, 5, 3, 1 };
+int num_layers = 4;
+Network *nn = init_network(layers, num_layers);
+
+double **training_data, **label_data; // assume these are already populated.
+int num_input_layer_neurons = 2;
+int num_output_layer_neurons = 1;
+int batches = 4;
+int epoch = 100;
+train_network(nn, training_data, num_input_layer_neurons, num_batches, label_data, num_output_layer_neurons, epoch)
+```
+
+`layers` defines the number of neurons at each layer in the network. `layers[0]` is the input layer, and `layers[num_layers - 1]` is the output layer. Everything in between are the hidden layers.
 
 ## Future TODOs
-- Add multi-layer, multi-dimensional neural nodes for a far more complex and capable system.
-- Ability to read images, and other media to detect features.
+- Evolve from perceptron to neural network ✅
+- Generalize neural network operations ✅
+- Better I/O utility for large datasets.
+- Integration with CUDA.
+- Ability to read images(MNIST!), and other media to detect features.
