@@ -48,18 +48,19 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
   return l;
 }
 
-Training *init_training(uint32 output_layer_size) {
+Training *init_training(uint32 output_layer_size, uint32 num_layers) {
   Training *t = (Training*)calloc(1, sizeof(Training));
   t->iteration = 0;
   t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
   t->loss_function = &meanSqErr;
-  t->learning_rate = 0.001;
+  t->learning_rate = 0.005;
+  t->derivative_function = &leakyRELU_d;
+  t->delta = (float64**)calloc(num_layers, sizeof(float64*));
   return t;
 }
 
 Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   srand(time(NULL)); /* At the start of the setup. */
-
   Network *n = (Network*)calloc(1, sizeof(Network));
   n->num_layers = num_layers;
   n->num_neurons_per_layer = (uint32*)calloc(n->num_layers, sizeof(uint32));
@@ -67,12 +68,15 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
   n->currLayerIdx = 0;
   n->activate = &leakyRELU;
-  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1]);
+
+  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers);
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);
+  n->training->delta[0] = (float64*)calloc(n->num_neurons_per_layer[0], sizeof(float64)); /* not sure if I will end up needing this. */
   for (uint32 layer_ptr = 1; layer_ptr < n->num_layers; layer_ptr++) {
     n->layers[layer_ptr] = init_layer(n->num_neurons_per_layer[layer_ptr], n->num_neurons_per_layer[layer_ptr - 1]);
+    n->training->delta[layer_ptr] = (float64*)calloc(n->num_neurons_per_layer[layer_ptr], sizeof(float64));
   }
   return n;
 }
@@ -85,8 +89,13 @@ float64 leakyRELU(float64 value) {
   return activation;
 }
 
+float64 leakyRELU_d(float64 value) {
+  float64 derv = (value > 0) ? 1.0f : 0.5f;
+  return derv;
+}
+
 float64 meanSqErr(float64 output, float64 input_label) {
-  return (float64)pow(output - input_label, 2);
+  return 0.5f * (float64)pow(output - input_label, 2);
 }
 
 void debug_network(Network *network) { 
@@ -123,64 +132,89 @@ void debug_network(Network *network) {
   >> until we get to the output layer, where a MSE/etc are calculated for the cost analysis.
 */
 
-bool forward_propagate(Network *network) {
-  if (network->currLayerIdx >= network->num_layers - 1) {
-    /* at this point, the result is available at the output layer.
-    we can fetch the activated result and move on with cost analysis. */
-    return false;
-  }
-  uint32 currLayerIdx = network->currLayerIdx;
-  network->currLayerIdx++;
-
-  for (uint32 i = 0; i < network->num_neurons_per_layer[currLayerIdx + 1]; i++) {
-    /* iterate through all neurons in the next layer. */
-    float64 sum = 0;
-    Neuron *nextNeuron = network->layers[currLayerIdx + 1]->neurons[i];
-    for (uint32 j = 0; j < network->num_neurons_per_layer[currLayerIdx]; j++) {
-      /* get activated result of every neuron from the current layer, and then
-      sum it with the weights with the selected neuron in the next layer.
-      for each weight in the nextNeuron, we get the corresponding currNeuron activated data to be summed */
-      Neuron *currNeuron = network->layers[currLayerIdx]->neurons[j];
-      sum += currNeuron->value * nextNeuron->weights[j];
+void forward_propagate(Network *network) {
+  /* Enabling a 3-layer nested loop is **far** better for memory than constantly recalling the 
+  forward propagation method.. */
+  for (uint32 currLayerIdx = 0; currLayerIdx < network->num_layers - 1; currLayerIdx++) {
+    for (uint32 i = 0; i < network->num_neurons_per_layer[currLayerIdx + 1]; i++) {
+      /* iterate through all neurons in the next layer. */
+      float64 sum = 0;
+      Neuron *nextNeuron = network->layers[currLayerIdx + 1]->neurons[i];
+      for (uint32 j = 0; j < network->num_neurons_per_layer[currLayerIdx]; j++) {
+        /* get activated result of every neuron from the current layer, and then
+        sum it with the weights with the selected neuron in the next layer.
+        for each weight in the nextNeuron, we get the corresponding currNeuron activated data to be summed */
+        Neuron *currNeuron = network->layers[currLayerIdx]->neurons[j];
+        sum += currNeuron->value * nextNeuron->weights[j];
+      }
+      sum += nextNeuron->bias;
+      nextNeuron->value = network->activate(sum); /* store the activated sum inside the next neuron */
     }
-    sum += nextNeuron->bias;
-    nextNeuron->value = network->activate(sum); /* store the activated sum inside the next neuron */
   }
-  // debug_network(network);
-  return true;
 }
 
-bool backward_propagate(Network *network) {
-  if (network->currLayerIdx <= 0) {
-    return false;
-  }
+void backward_propagate(Network *network, float64 *label_data) {
   /* compute the loss and do some magic stuff here to influence weights.. */
+  uint32 output_layer = network->num_layers - 1;
+  for (uint32 i = 0; i < network->num_neurons_per_layer[output_layer]; i++) {
+    float64 gradient = network->training->derivative_function(network->layers[output_layer]->neurons[i]->value);
+    network->training->delta[output_layer][i] = gradient * (network->layers[output_layer]->neurons[i]->value - label_data[i]);
+    /* label data(could have a better name) is actually the desired output at each neuron in the output layer. */
+  }
 
-  return true;
+  for (uint32 currLayerIdx = network->num_layers - 2; currLayerIdx > 0; currLayerIdx--) {
+    for (uint32 currNeuronIdx = 0; currNeuronIdx < network->num_neurons_per_layer[currLayerIdx]; currNeuronIdx++) {
+      float64 sum = 0.0f;
+      for (uint32 j = 0; j < network->num_neurons_per_layer[currLayerIdx + 1]; j++) {
+        /* sum += weight of the neuron in the next layer corresponding to the neuron in the current layer * delta of each individual neuron in the next layer. */
+        sum += network->layers[currLayerIdx + 1]->neurons[j]->weights[currNeuronIdx] * network->training->delta[currLayerIdx + 1][j];
+        sum += network->layers[currLayerIdx + 1]->neurons[j]->bias * network->training->delta[currLayerIdx + 1][j];
+      }
+
+      float64 gradient = network->training->derivative_function(network->layers[currLayerIdx]->neurons[currNeuronIdx]->value);
+      network->training->delta[currLayerIdx][currNeuronIdx] = gradient * sum;
+    }
+  }
+
+  for (uint32 currLayerIdx = 0; currLayerIdx < network->num_layers - 1; currLayerIdx++) {
+    for (uint32 i = 0; i < network->num_neurons_per_layer[currLayerIdx]; i++) {
+      for (uint32 j = 0; j < network->num_neurons_per_layer[currLayerIdx + 1]; j++) {
+        float64 dw = network->training->delta[currLayerIdx + 1][j] * network->layers[currLayerIdx]->neurons[i]->value;
+        float64 db = network->training->delta[currLayerIdx + 1][j] * 1.0f;
+
+        /* the weight of the neuron in the next layer corresponding to the neuron in the current layer = learning rate * delta */
+        network->layers [currLayerIdx + 1]->neurons[j]->weights[i] -= network->training->learning_rate * dw;
+        network->layers [currLayerIdx + 1]->neurons[j]->bias -= network->training->learning_rate * db;
+      }
+    }
+  }
 }
 
-void train_network(Network *network, float64 **training_data, uint32 training_data_len, uint32 training_data_batch_len, float64 **label_data, uint32 label_data_batch_len, uint32 label_data_len) {
+void train_network(Network *network, float64 **training_data, uint32 training_data_len, uint32 batch_len, float64 **label_data, uint32 label_data_len, uint32 epoch) {
   /* the training_data is a 2D array:
     - There are training_data_batch_len number of batches
     - Each batch has training_data_len number of inputs to be fed
   */
-  for (uint32 i = 0; i < training_data_batch_len; i++) {
-    float64 *retdata = test_network(training_data[i], training_data_len, network);
-    network->currLayerIdx = network->num_layers - 1;
-    memcpy(network->training->loss, retdata, network->currLayerIdx * sizeof(float64));
-    free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
-    backward_propagate(network);
+  for (uint32 e = 0; e < epoch; e++) {
+    for (uint32 i = 0; i < batch_len; i++) {
+      float64 *retdata = test_network(training_data[i], training_data_len, network);
+      free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
+      backward_propagate(network, label_data[i]);
+    }
+    // debug_network(network);
+    // printf("\n\n===============\n\n");
   }
 }
 
 float64 *test_network(float64 *data, uint32 len, Network *network) {
   populate_input(data, len, network);
-  while (forward_propagate(network));
-  float64 *retdata = (float64*)malloc(network->num_neurons_per_layer[network->currLayerIdx] * sizeof(float64));
-  for (uint32 i = 0; i < network->num_neurons_per_layer[network->currLayerIdx]; i++) {
-    retdata[i] = network->layers[network->currLayerIdx]->neurons[i]->value;
+  forward_propagate(network);
+  float64 *retdata = (float64*)calloc(network->num_neurons_per_layer[network->num_layers - 1], sizeof(float64));
+  for (uint32 i = 0; i < network->num_neurons_per_layer[network->num_layers - 1]; i++) {
+    retdata[i] = network->layers[network->num_layers - 1]->neurons[i]->value;
   }
   network->currLayerIdx = 0;
+  // debug_network(network);
   return retdata;
 }
 

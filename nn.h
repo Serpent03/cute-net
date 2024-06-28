@@ -36,7 +36,9 @@ typedef struct Training {
   uint32 iteration;
   float64 *loss; /* this stores all output neuron activation values. */
   float64 (*loss_function)(float64 output, float64 input_label);
+  float64 (*derivative_function)(float64 value);
   float64 learning_rate;
+  float64 **delta; /* this stores all the SGD deltas for easy access. */
 } Training;
 
 typedef struct Network {
@@ -55,6 +57,13 @@ typedef struct Network {
  * @return activated float64 value.
 */
 float64 leakyRELU(float64 value);
+
+/**
+ * @brief Leaky RELU derivative function.
+ * @param value The activated value in question.
+ * @return derivative as a float64.
+*/
+float64 leakyRELU_d(float64 value);
 
 /**
  * @brief Mean Square Error cost function.
@@ -98,16 +107,34 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers);
  * @param network The neural network to propagate.
  * @return False if the forward propagation has been completed to the output layer.
 */
-bool forward_propagate(Network *network);
+void forward_propagate(Network *network);
 
 /**
  * @brief Backward propagation inside a neural network
  * @param network The neural network to propagate.
  * @return False if the backward propagation has been completed to the input layer.
 */
-bool backward_propagate(Network *network);
+void backward_propagate(Network *network, float64 *label_data);
 
+/**
+ * @brief Test the network based on data.
+ * @param data The data to be fed.
+ * @param len The dimensionality of the data.
+ * @param network The neural network to test.
+*/
 float64 *test_network(float64 *data, uint32 len, Network *network);
+
+/**
+ * @brief Train the network on a specific dataset.
+ * @param network The neural network to train.
+ * @param training_data A 2-dimensional array representing the input data.
+ * @param training_data_len The number of inputs to be fed.
+ * @param batch_len The amount of training_data arrays.
+ * @param label_data A 2-dimensional array representing the expected output data.
+ * @param label_data_len The number of outputs to be expected.
+ * @param epoch The number of times to train on a single piece of data.
+*/
+void train_network(Network *network, float64 **training_data, uint32 training_data_len, uint32 batch_len, float64 **label_data, uint32 label_data_len, uint32 epoch);
 
 /*
   During forward propagation, the workflow will be as such:
