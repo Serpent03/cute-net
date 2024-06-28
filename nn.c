@@ -53,7 +53,7 @@ Training *init_training(uint32 output_layer_size, uint32 num_layers) {
   t->iteration = 0;
   t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
   t->loss_function = &meanSqErr;
-  t->learning_rate = 0.005;
+  t->learning_rate = 0.001;
   t->derivative_function = &leakyRELU_d;
   t->delta = (float64**)calloc(num_layers, sizeof(float64*));
   return t;
@@ -85,7 +85,7 @@ float64 leakyRELU(float64 value) {
   /* ReLU is pretty much max(0, value). if we get negative values, however, we can quickly get
   stuck. In that scenario, we simply do max(value * -0.001, value). If the value is positive, then we
   choose it, otherwise we reduce its magnitude and change the direction, and take it. */
-  float64 activation = value > value * 0.001 ? value : value * 0.001;
+  float64 activation = value > value * 0.01 ? value : value * 0.01;
   return activation;
 }
 
@@ -113,14 +113,6 @@ void debug_network(Network *network) {
   }
   printf("\n");
 }
-
-/* 
-  Let's get forward feed working first
-
-  List    List      List
-  Input1  Neuron1_1 Neuron2_1
-  Input2  Neuron1_2
-*/
 
 /* 
   The workflow is as follows:
@@ -195,11 +187,25 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
     - There are training_data_batch_len number of batches
     - Each batch has training_data_len number of inputs to be fed
   */
+  uint32 i = 0;
   for (uint32 e = 0; e < epoch; e++) {
-    for (uint32 i = 0; i < batch_len; i++) {
+    for (i = 0; i < batch_len; i++) {
       float64 *retdata = test_network(training_data[i], training_data_len, network);
-      free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
       backward_propagate(network, label_data[i]);
+      
+      if (e % 1000 == 0) {
+        printf("\nEpoch: %d\nIn:", e);
+        for (uint32 inlen = 0; inlen < training_data_len; inlen++) {
+          printf("%f ", training_data[i][inlen]);
+        }
+        printf("\nOut: ");
+        for (uint32 outlen = 0; outlen < label_data_len; outlen++) {
+          printf("%f ", retdata[outlen]);
+        }
+        printf("\n");
+      }
+
+      free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
     }
     // debug_network(network);
     // printf("\n\n===============\n\n");
