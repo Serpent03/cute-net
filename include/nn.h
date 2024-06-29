@@ -1,22 +1,6 @@
 #pragma once
+#include "common.h"
 #include <stdbool.h>
-
-/* ==== DEFINITIONS & TYPES ==== */
-
-#define IN_NODES 2
-#define OUT_NODES 1
-
-typedef unsigned char uint8;
-typedef char int8;
-
-typedef unsigned short int uint16;
-typedef short int int16;
-
-typedef unsigned int uint32;
-typedef int int32;
-
-typedef float float32;
-typedef double float64;
 
 /* ==== STRUCTURES & METHODS ==== */
 
@@ -121,6 +105,7 @@ void backward_propagate(Network *network, float64 *label_data);
  * @param data The data to be fed.
  * @param len The dimensionality of the data.
  * @param network The neural network to test.
+ * @return A float64 array containing data from the output layer.
 */
 float64 *test_network(float64 *data, uint32 len, Network *network);
 

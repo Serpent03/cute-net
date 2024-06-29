@@ -15,7 +15,7 @@ Clone the repository onto your local machine using git:
 git clone https://github.com/Serpent03/cute-net.git
 ```
 
-Before starting, build the project using `make`, and run the project using `./main`.
+Before starting, build the project using `make`, and run the project using `make run`. The `./main` executable is generated inside `src/`.
 
 ## Overview
 

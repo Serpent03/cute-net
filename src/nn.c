@@ -1,4 +1,4 @@
-#include "nn.h"
+#include "../include/nn.h"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -68,7 +68,6 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
   n->currLayerIdx = 0;
   n->activate = &leakyRELU;
-
   n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers);
 
   /* the 0th layer is treated as the input layer. */
@@ -202,7 +201,7 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
         for (uint32 outlen = 0; outlen < label_data_len; outlen++) {
           printf("%f ", retdata[outlen]);
         }
-        printf("\n");
+        printf("\n====\n");
       }
 
       free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
@@ -234,7 +233,8 @@ void populate_input(float64 *data, uint32 len, Network *network) {
 }
 
 /*
-  Now to test out the network with custom weights/values. Once that is done, we can shift forward
-  and write the backpropagation logic, with the gradient descent and weighing in the neurons -- which is really where the meat of the matter is. Once that is done, we simply have to tie it all together into a testing/training
-  tool.
+With the backpropagation and training taken care of, the next step would be to solidify the 
+permanence of the model - currently it all exists in the runtime, instead on the disk, so to load it
+again on the next run we will need to save the architecture to file and then save the weights; so next time
+we run the functions, we can easily transfer all of that to the functions.
 */

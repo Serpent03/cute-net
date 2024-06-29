@@ -1,10 +1,17 @@
+source = src/*.c
+lib = lib/*.o
+include = include/*.h
+build = build/
+
+bash = bash -c
 cc = gcc
 ccflags = -Wall
-sources = main.c nn.c
-bash = bash -c
 
-main: ${sources}
-	${cc} ${ccflags} -o $@ $^
+main: ${source}
+	${cc} ${ccflags} -o $(build)$@ $^
+
+run:
+	$(build)main
 
 clean:
-	${bash} "rm -rf ./main"
+	${bash} "rm -rf ./build/main"
