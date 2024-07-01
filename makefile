@@ -7,11 +7,11 @@ bash = bash -c
 cc = gcc
 ccflags = -Wall
 
-main: ${source}
-	${cc} ${ccflags} -o $(build)$@ $^
+main: $(source)
+	$(cc) $(ccflags) -o $(build)$@ $^
 
 run:
 	$(build)main
 
 clean:
-	${bash} "rm -rf ./build/main"
+	$(bash) "rm -rf ./build/main"

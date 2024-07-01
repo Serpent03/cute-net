@@ -1,4 +1,5 @@
 #include "../include/nn.h"
+#include "../include/activation.h"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -48,18 +49,27 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
   return l;
 }
 
-Training *init_training(uint32 output_layer_size, uint32 num_layers) {
+Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activation_type) {
   Training *t = (Training*)calloc(1, sizeof(Training));
   t->iteration = 0;
   t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
   t->loss_function = &meanSqErr;
   t->learning_rate = 0.001;
-  t->derivative_function = &leakyRELU_d;
+  switch (activation_type) {
+    case ACTIVATION_RELU:
+      t->derivative_function = &leakyRELU_d;
+      break;
+    case ACTIVATION_SIGMOID:
+      t->derivative_function = &sigmoid_d;
+      break;
+    default:
+      assert(false);
+  }
   t->delta = (float64**)calloc(num_layers, sizeof(float64*));
   return t;
 }
 
-Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
+Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type) {
   srand(time(NULL)); /* At the start of the setup. */
   Network *n = (Network*)calloc(1, sizeof(Network));
   n->num_layers = num_layers;
@@ -67,8 +77,19 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
   memcpy(n->num_neurons_per_layer, num_neurons_per_layer, num_layers * sizeof(uint32));
   n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
   n->currLayerIdx = 0;
-  n->activate = &leakyRELU;
-  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers);
+
+  switch (activation_type) {
+    case ACTIVATION_RELU:
+      n->activate = &leakyRELU;
+      break;
+    case ACTIVATION_SIGMOID:
+      n->activate = &sigmoid;
+      break;
+    default:
+      assert(false);
+  }
+
+  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers, activation_type);
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);
@@ -78,23 +99,6 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers) {
     n->training->delta[layer_ptr] = (float64*)calloc(n->num_neurons_per_layer[layer_ptr], sizeof(float64));
   }
   return n;
-}
-
-float64 leakyRELU(float64 value) {
-  /* ReLU is pretty much max(0, value). if we get negative values, however, we can quickly get
-  stuck. In that scenario, we simply do max(value * -0.001, value). If the value is positive, then we
-  choose it, otherwise we reduce its magnitude and change the direction, and take it. */
-  float64 activation = value > value * 0.01 ? value : value * 0.01;
-  return activation;
-}
-
-float64 leakyRELU_d(float64 value) {
-  float64 derv = (value > 0) ? 1.0f : 0.5f;
-  return derv;
-}
-
-float64 meanSqErr(float64 output, float64 input_label) {
-  return 0.5f * (float64)pow(output - input_label, 2);
 }
 
 void debug_network(Network *network) { 

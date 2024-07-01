@@ -11,3 +11,4 @@ typedef int int32;
 
 typedef float float32;
 typedef double float64;
+typedef long double float128;
