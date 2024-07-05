@@ -1,5 +1,5 @@
 source = src/*.c
-lib = lib/*.o
+lib = -lm
 include = include/*.h
 build = build/
 
@@ -8,7 +8,7 @@ cc = gcc
 ccflags = -Wall
 
 main: $(source)
-	$(cc) $(ccflags) -o $(build)$@ $^
+	$(cc) $(ccflags) -o $(build)$@ $^ $(lib)
 
 run:
 	$(build)main
