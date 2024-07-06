@@ -18,7 +18,8 @@ float64 sigmoid(float64 value) {
   /* Sigmoid introduces non-linearity by compressing values close to -1..1 to their original
   magnitude, and squishes down the values of numbers greater than that by exponentially clamping down
   such that [-infinity, +infinity] becomes [-1, +1]. */
-  return (1 / (1 + pow(2.71828182846, -value)));
+  float64 result = 1 / (1 + exp(-value));
+  return result;
 }
 
 float64 sigmoid_d(float64 value) {

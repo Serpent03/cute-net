@@ -49,12 +49,12 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
   return l;
 }
 
-Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activation_type) {
+Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activation_type, float64 learning_rate) {
   Training *t = (Training*)calloc(1, sizeof(Training));
   t->iteration = 0;
   t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
   t->loss_function = &meanSqErr;
-  t->learning_rate = 0.001;
+  t->learning_rate = learning_rate; /* 0.1 seems to be good for now..? */
   switch (activation_type) {
     case ACTIVATION_RELU:
       t->derivative_function = &leakyRELU_d;
@@ -69,7 +69,7 @@ Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activ
   return t;
 }
 
-Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type) {
+Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate) {
   srand(time(NULL)); /* At the start of the setup. */
   Network *n = (Network*)calloc(1, sizeof(Network));
   n->num_layers = num_layers;
@@ -89,7 +89,7 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 ac
       assert(false);
   }
 
-  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers, activation_type);
+  n->training = init_training(n->num_neurons_per_layer[n->num_layers - 1], n->num_layers, activation_type, learning_rate);
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);

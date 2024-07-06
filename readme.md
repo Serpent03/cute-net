@@ -43,7 +43,8 @@ int num_input_layer_neurons = 2;
 int num_output_layer_neurons = 1;
 int batches = 4;
 int epoch = 100;
-train_network(nn, training_data, num_input_layer_neurons, num_batches, label_data, num_output_layer_neurons, epoch)
+float learning_rate = 0.1; /* values around this range work well for a sigmoid function. */
+train_network(nn, training_data, num_input_layer_neurons, num_batches, label_data, num_output_layer_neurons, epoch, learning_rate);
 ```
 
 `layers` defines the number of neurons at each layer in the network. `layers[0]` is the input layer, and `layers[num_layers - 1]` is the output layer. Everything in between are the hidden layers.

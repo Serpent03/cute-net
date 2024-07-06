@@ -17,7 +17,7 @@ int main() {
   uint32 input_neuron = layers[0];
   uint32 output_neuron = layers[network_wibr - 1];
 
-  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU);
+  Network *nn = init_network(layers, network_wibr, ACTIVATION_SIGMOID, 0.1);
 
   /** @todo fix thsi wacky ass input methodology. */
 

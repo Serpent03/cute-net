@@ -62,9 +62,10 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes);
   - 4 neurons in the first hidden layer, 4 neurons in the second hidden layer,
   - 1 neuron in the output layer.
  * @param num_layers The total number of layers, including the input, hidden and output layers.
+ * @param learning_rate Hyperparameter to set the learning rate of the network during backpropagation.
  * @return A network object.
 */
-Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type);
+Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate);
 
 /**
  * @brief Forward propagation inside a neural network. Takes the data 
