@@ -39,21 +39,6 @@ typedef struct Network {
 } Network;
 
 /**
- * @brief Initialize a neuron.
- * @param in_nodes The number of nuerons in the previous connecting to this neuron.
- * @return A neuron object.
-*/
-Neuron *init_neuron(uint32 in_nodes);
-
-/**
- * @brief Initialize a layer.
- * @param num_neurons Number of neurons in this layer.
- * @param in_nodes The number of neurons in the previous layer connected to each neuron in this layer.
- * @return A layer object.
-*/
-Layer *init_layer(uint32 num_neurons, uint32 in_nodes);
-
-/**
  * @brief Initialize a neural network.
  * @param num_neurons_per_layer The number of neurons per layer in the network, passed as an array.
   The num_neurons_per_layer array must be passed via reference(pointer) and should contain information in the 
@@ -66,6 +51,20 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes);
  * @return A network object.
 */
 Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate);
+
+/**
+ * @brief Save a network to file.
+ * @param n The network in question.
+ * @param file The name of the file to save the network to.
+*/
+void save_network(Network *n, char *file);
+
+/**
+ * @brief Initialize a network from file.
+ * @param file The name of the file containing the network data.
+ * @return An initialized neural network.
+*/
+Network *load_network(char *file);
 
 /**
  * @brief Forward propagation inside a neural network. Takes the data 
@@ -102,6 +101,7 @@ float64 *test_network(float64 *data, uint32 len, Network *network);
  * @param epoch The number of times to train on a single piece of data.
 */
 void train_network(Network *network, float64 **training_data, uint32 training_data_len, uint32 batch_len, float64 **label_data, uint32 label_data_len, uint32 epoch);
+
 
 /*
   During forward propagation, the workflow will be as such:

@@ -1,5 +1,6 @@
 #include "../include/nn.h"
 #include "../include/activation.h"
+#include "../include/fileops.h"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -7,6 +8,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+
+FILE *fptr; /* this pointer interacts directly with the weights file. */
 
 /*
   New idea: instead of representing layers with structures
@@ -25,9 +28,9 @@
 Neuron *init_neuron(uint32 in_nodes) {
   /* in_nodes is determined by the number of neurons in the 
   previous layer - as they are all interconnected. */
-  Neuron *n = (Neuron*)calloc(1, sizeof(Neuron));
+  Neuron *n = (Neuron*)malloc(1 * sizeof(Neuron));
 
-  n->weights = (float64*)calloc(in_nodes, sizeof(float64));
+  n->weights = (float64*)malloc(in_nodes * sizeof(float64));
   n->num_weights = in_nodes;
   n->bias = 0;
   n->value = 0;
@@ -41,8 +44,8 @@ Neuron *init_neuron(uint32 in_nodes) {
 }
 
 Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
-  Layer *l = (Layer*)calloc(1, sizeof(Layer));
-  l->neurons = (Neuron**)calloc(num_neurons, sizeof(Neuron*));
+  Layer *l = (Layer*)malloc(1 * sizeof(Layer));
+  l->neurons = (Neuron**)malloc(num_neurons * sizeof(Neuron*));
   for (uint32 i = 0; i < num_neurons; i++) {
     l->neurons[i] = init_neuron(in_nodes);
   }
@@ -50,9 +53,9 @@ Layer *init_layer(uint32 num_neurons, uint32 in_nodes) {
 }
 
 Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activation_type, float64 learning_rate) {
-  Training *t = (Training*)calloc(1, sizeof(Training));
+  Training *t = (Training*)malloc(1 * sizeof(Training));
   t->iteration = 0;
-  t->loss = (float64*)calloc(output_layer_size, sizeof(float64));
+  t->loss = (float64*)malloc(output_layer_size * sizeof(float64));
   t->loss_function = &meanSqErr;
   t->learning_rate = learning_rate; /* 0.1 seems to be good for now..? */
   switch (activation_type) {
@@ -65,17 +68,17 @@ Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activ
     default:
       assert(false);
   }
-  t->delta = (float64**)calloc(num_layers, sizeof(float64*));
+  t->delta = (float64**)malloc(num_layers * sizeof(float64*));
   return t;
 }
 
 Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate) {
   srand(time(NULL)); /* At the start of the setup. */
-  Network *n = (Network*)calloc(1, sizeof(Network));
+  Network *n = (Network*)malloc(1 * sizeof(Network));
   n->num_layers = num_layers;
-  n->num_neurons_per_layer = (uint32*)calloc(n->num_layers, sizeof(uint32));
+  n->num_neurons_per_layer = (uint32*)malloc(n->num_layers * sizeof(uint32));
   memcpy(n->num_neurons_per_layer, num_neurons_per_layer, num_layers * sizeof(uint32));
-  n->layers = (Layer**)calloc(n->num_layers, sizeof(Layer*));
+  n->layers = (Layer**)malloc(n->num_layers * sizeof(Layer*));
   n->currLayerIdx = 0;
 
   switch (activation_type) {
@@ -93,11 +96,42 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 ac
 
   /* the 0th layer is treated as the input layer. */
   n->layers[0] = init_layer(n->num_neurons_per_layer[0], 0);
-  n->training->delta[0] = (float64*)calloc(n->num_neurons_per_layer[0], sizeof(float64)); /* not sure if I will end up needing this. */
+  n->training->delta[0] = (float64*)malloc(n->num_neurons_per_layer[0] * sizeof(float64)); /* not sure if I will end up needing this. */
   for (uint32 layer_ptr = 1; layer_ptr < n->num_layers; layer_ptr++) {
     n->layers[layer_ptr] = init_layer(n->num_neurons_per_layer[layer_ptr], n->num_neurons_per_layer[layer_ptr - 1]);
-    n->training->delta[layer_ptr] = (float64*)calloc(n->num_neurons_per_layer[layer_ptr], sizeof(float64));
+    n->training->delta[layer_ptr] = (float64*)malloc(n->num_neurons_per_layer[layer_ptr] * sizeof(float64));
   }
+  return n;
+}
+
+void save_network(Network *n, char *file) {
+  fptr = fopen(file, "wb");
+  if (!fptr) return;
+  write_new_line(n->num_neurons_per_layer, sizeof(uint32), n->num_layers, fptr); /* architecture */
+
+  uint32 num_weights = 0;
+  for (uint32 i = 1; i < n->num_layers; i++) {
+    num_weights += n->num_neurons_per_layer[i-1] * n->num_neurons_per_layer[i];
+  }
+
+  float64 *weights = (float64*)malloc(num_weights * sizeof(float64));
+  uint32 idx = 0;
+  for (uint32 i = 1; i < n->num_layers; i++) {
+    for (uint32 j = 0; j < n->num_neurons_per_layer[i]; j++) {
+      for (uint32 k = 0; k < n->layers[i]->neurons[j]->num_weights; k++) {
+        weights[idx++] = n->layers[i]->neurons[j]->weights[k];
+      }
+    }
+  }
+  write_new_line(weights, sizeof(float64), num_weights, fptr); /* weights */
+
+  free(weights);
+  fclose(fptr);
+}
+
+Network *load_network(char *file) {
+  Network *n;
+  
   return n;
 }
 
@@ -218,7 +252,7 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
 float64 *test_network(float64 *data, uint32 len, Network *network) {
   populate_input(data, len, network);
   forward_propagate(network);
-  float64 *retdata = (float64*)calloc(network->num_neurons_per_layer[network->num_layers - 1], sizeof(float64));
+  float64 *retdata = (float64*)malloc(network->num_neurons_per_layer[network->num_layers - 1] * sizeof(float64));
   for (uint32 i = 0; i < network->num_neurons_per_layer[network->num_layers - 1]; i++) {
     retdata[i] = network->layers[network->num_layers - 1]->neurons[i]->value;
   }

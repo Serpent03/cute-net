@@ -3,7 +3,7 @@ lib = -lm
 include = include/*.h
 build = build/
 
-bash = bash -c
+bash = bash -c 
 cc = gcc
 ccflags = -Wall
 
@@ -14,4 +14,5 @@ run:
 	$(build)main
 
 clean:
-	$(bash) "rm -rf ./build/main"
+	$(bash) "rm -rf ./build/main*"
+	$(bash) "rm -rf ./network/network*"

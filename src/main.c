@@ -46,6 +46,7 @@ int main() {
   float64 t8[1] = {0};
   insert_into_2d_array(label_data, t8, layer_size_2, &ptr);
 
+
   train_network(nn, training_data, layer_size, ptr, label_data, layer_size_2, 10000);
 
 
@@ -65,4 +66,6 @@ int main() {
   }
   printf("\n");
   free(res);
+
+  save_network(nn, "./network/network.net");
 }
