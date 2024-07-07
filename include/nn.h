@@ -33,7 +33,7 @@ typedef struct Network {
   uint32 num_layers;
   uint32 *num_neurons_per_layer; /* each i-th value dictates number of neurons in layer i */
   uint32 currLayerIdx; /* global pointer for the current layer being fore/backpropagated. */
-  bool backprop;
+  uint32 activation_type;
   float64 (*activate)(float64 sum); /* this is the activation function. */
   Training *training;
 } Network;
