@@ -31,6 +31,7 @@ In `main.c`, there are some functions of interest:
 - `init_network`: This initializes a neural network of given dimensions.
 - `train_network`: This trains the network according to the given input.
 - `test_network`: This tests the network according to the current network weights.
+- `save_network` and `load_network` save and load the network to disk.
 
 A general approach to using the functions would be:
 ```C
@@ -49,9 +50,19 @@ train_network(nn, training_data, num_input_layer_neurons, num_batches, label_dat
 
 `layers` defines the number of neurons at each layer in the network. `layers[0]` is the input layer, and `layers[num_layers - 1]` is the output layer. Everything in between are the hidden layers.
 
+To save and load the model from the disk, the following commands can be used:
+```C
+Network *nn; /* assume it is already trained */
+save_network(nn, "./network/network.net");
+
+Network *copy_nn = load_network("./network/network.net");
+/* further operations on <<copy_nn>> can be done completely independent of <<nn>>. */
+```
+
 ## Future TODOs
 - Evolve from perceptron to neural network ✅
 - Generalize neural network operations ✅
+- Save/Load model from disk ✅:w
 - Better I/O utility for large datasets.
 - Integration with CUDA.
 - Ability to read images(MNIST!), and other media to detect features.
