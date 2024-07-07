@@ -17,7 +17,7 @@ int main() {
   uint32 input_neuron = layers[0];
   uint32 output_neuron = layers[network_wibr - 1];
 
-  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.05);
+  Network *nn = init_network(layers, network_wibr, ACTIVATION_SIGMOID, 0.05);
 
   /** @todo fix thsi wacky ass input methodology. */
 
@@ -48,10 +48,12 @@ int main() {
 
 
   train_network(nn, training_data, layer_size, ptr, label_data, layer_size_2, 10000);
+  save_network(nn, "./network/network.net");
 
+  Network *copy = load_network("./network/network.net");
 
   float64 data[] = { 1, 1 };
-  float64 *res = test_network(data, input_neuron, nn);
+  float64 *res = test_network(data, input_neuron, copy);
   for (uint32 i = 0; i < output_neuron; i++) {
     printf("%f ", res[i]);
   }
@@ -60,12 +62,11 @@ int main() {
 
   data[0] = 0;
   data[1] = 1;
-  res = test_network(data, input_neuron, nn);
+  res = test_network(data, input_neuron, copy);
   for (uint32 i = 0; i < output_neuron; i++) {
     printf("%f ", res[i]);
   }
   printf("\n");
   free(res);
 
-  save_network(nn, "./network/network.net");
 }

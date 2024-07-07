@@ -15,4 +15,3 @@ run:
 
 clean:
 	$(bash) "rm -rf ./build/main*"
-	$(bash) "rm -rf ./network/network*"

@@ -24,7 +24,7 @@ typedef struct Training {
   float64 *loss; /* this stores all output neuron activation values. */
   float64 (*loss_function)(float64 output, float64 input_label);
   float64 (*derivative_function)(float64 value);
-  float64 learning_rate;
+  float32 learning_rate;
   float64 **delta; /* this stores all the SGD deltas for easy access. */
 } Training;
 
@@ -50,7 +50,7 @@ typedef struct Network {
  * @param learning_rate Hyperparameter to set the learning rate of the network during backpropagation.
  * @return A network object.
 */
-Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate);
+Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float32 learning_rate);
 
 /**
  * @brief Save a network to file.

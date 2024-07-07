@@ -72,7 +72,7 @@ Training *init_training(uint32 output_layer_size, uint32 num_layers, uint8 activ
   return t;
 }
 
-Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float64 learning_rate) {
+Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 activation_type, float32 learning_rate) {
   srand(time(NULL)); /* At the start of the setup. */
   Network *n = (Network*)malloc(1 * sizeof(Network));
   n->num_layers = num_layers;
@@ -105,11 +105,21 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 ac
   return n;
 }
 
+/*
+  The data structure of the file being saved to disk is divided into certain sections:
+  - Number of neurons per layer, in an array format
+  - All the weights of the network in sequential order
+  - All the biases of the network in sequential order
+  - Activation type of the network
+  Each section is separated by a 32-bit unsigned integer, aka the MAGIC word: 0x55AA, although
+  since C saves it in little-endian order, it appears as 0xAA550000 on the disk.
+*/
+
 void save_network(Network *n, char *file) {
   fptr = fopen(file, "wb");
   if (!fptr) return;
 
-  write_new_line(n->num_neurons_per_layer, sizeof(uint32), n->num_layers, fptr); /* architecture */
+  write_section(n->num_neurons_per_layer, sizeof(uint32), n->num_layers, fptr); /* architecture */
 
   uint32 num_weights = 0;
   for (uint32 i = 1; i < n->num_layers; i++) {
@@ -125,7 +135,7 @@ void save_network(Network *n, char *file) {
       }
     }
   }
-  write_new_line(weights, sizeof(float64), num_weights, fptr); /* weights */
+  write_section(weights, sizeof(float64), num_weights, fptr); /* weights */
   free(weights);
 
   uint32 num_biases = 0;
@@ -140,19 +150,62 @@ void save_network(Network *n, char *file) {
       biases[idx++] = n->layers[i]->neurons[j]->bias;
     }
   }
-  write_new_line(biases, sizeof(float64), num_biases, fptr); /* biases */
-  free(biases);
+  write_section(biases, sizeof(float64), num_biases, fptr); /* biases */
 
-  write_new_line(&n->activation_type, sizeof(uint32), 1, fptr); /* activation type */
+  float32 misc[2] = { (float32)n->activation_type, n->training->learning_rate };
+  write_section(misc, sizeof(float32), 2, fptr); /* activation type */
+  free(biases);
   fclose(fptr);
 }
 
 Network *load_network(char *file) {
+  fptr = fopen(file, "rb");
+  assert(fptr); /* makes no sense to proceed further if the file is not accessible */
   
-  Network *n;
+  uint32 cursor = 0; /* this will track the position of the cursor in the file. */
+  uint32 num_layers;
+  uint32 *layers = (uint32*)read_section(layers, sizeof(uint32), fptr, &cursor, &num_layers);
 
-  
+  uint32 num_weights;
+  float64 *weights = (float64*)read_section(weights, sizeof(float64), fptr, &cursor, &num_weights);
 
+  uint32 num_biases;
+  float64 *biases = (float64*)read_section(biases, sizeof(float64), fptr, &cursor, &num_biases);
+
+  uint32 misc_length;
+  float32 *misc = (float32*)read_section(misc, sizeof(float32), fptr, &cursor, &misc_length);
+  /* contains activation type and learning rate. */
+
+  uint32 activation_type = (uint32)misc[0];
+  float32 learning_rate = misc[1];
+  free(misc);
+
+  /* Now copy over the data loaded from disk. */
+  Network *n = init_network(layers, num_layers, activation_type, learning_rate);
+
+  /* weights */
+  uint32 idx = 0;
+  for (uint32 i = 1; i < n->num_layers; i++) {
+    for (uint32 j = 0; j < n->num_neurons_per_layer[i]; j++) {
+      for (uint32 k = 0; k < n->layers[i]->neurons[j]->num_weights; k++) {
+        n->layers[i]->neurons[j]->weights[k] = weights[idx++];
+      }
+    }
+  }
+
+  /* biases */
+  idx = 0;
+  for (uint32 i = 0; i < n->num_layers; i++) {
+    for (uint32 j = 0; j < n->num_neurons_per_layer[i]; j++) {
+      n->layers[i]->neurons[j]->bias = biases[idx++];
+    }
+  }
+
+  free(layers);
+  free(weights);
+  free(biases);
+  free(misc);
+  fclose(fptr);
   return n;
 }
 
