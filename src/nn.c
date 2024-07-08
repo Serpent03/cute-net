@@ -11,20 +11,6 @@
 
 FILE *fptr; /* this pointer interacts directly with the weights file. */
 
-/*
-  New idea: instead of representing layers with structures
-  how about representing with arrays? This way, CUDA integration can also 
-  be done in a cleaner fashion!
-
-  This can be represented with a matrix multiplication for simplicity.
-
-  List    List      List
-  Input1  Neuron1_1 Neuron2_1
-  Input2  Neuron1_2 Neuron2_2
-  Input3  Neuron1_3 Neuron2_3
-
-*/
-
 Neuron *init_neuron(uint32 in_nodes) {
   /* in_nodes is determined by the number of neurons in the 
   previous layer - as they are all interconnected. */
@@ -178,7 +164,6 @@ Network *load_network(char *file) {
 
   uint32 activation_type = (uint32)misc[0];
   float32 learning_rate = misc[1];
-  free(misc);
 
   /* Now copy over the data loaded from disk. */
   Network *n = init_network(layers, num_layers, activation_type, learning_rate);
@@ -299,7 +284,7 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
     - Each batch has training_data_len number of inputs to be fed
   */
   uint32 i = 0;
-  for (uint32 e = 0; e < epoch; e++) {
+  for (uint32 e = 1; e < epoch + 1; e++) {
     for (i = 0; i < batch_len; i++) {
       float64 *retdata = test_network(training_data[i], training_data_len, network);
       backward_propagate(network, label_data[i]);

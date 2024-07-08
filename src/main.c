@@ -11,13 +11,13 @@ void insert_into_2d_array(float64 **in_array, float64 *append_array, uint32 a, u
 
 int main() {
   /* set up the nodes */
-  uint32 layers[] = { 2, 5, 5, 1 };
+  uint32 layers[] = { 2, 5, 4, 1 };
   uint32 network_wibr = sizeof(layers) / sizeof(layers[0]);
 
   uint32 input_neuron = layers[0];
   uint32 output_neuron = layers[network_wibr - 1];
 
-  Network *nn = init_network(layers, network_wibr, ACTIVATION_SIGMOID, 0.05);
+  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.05);
 
   /** @todo fix thsi wacky ass input methodology. */
 
@@ -45,6 +45,11 @@ int main() {
   insert_into_2d_array(label_data, t7, layer_size_2, &ptr);
   float64 t8[1] = {0};
   insert_into_2d_array(label_data, t8, layer_size_2, &ptr);
+
+  /* what about seperating a directory for both training and testing set?
+    that way, I only have to feed in the data into the commandline arguments,
+    along with other hyperparameters like epoch, learning rate, and whether to save the file or not.
+   */
 
 
   train_network(nn, training_data, layer_size, ptr, label_data, layer_size_2, 10000);
