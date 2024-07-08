@@ -62,7 +62,7 @@ Network *copy_nn = load_network("./network/network.net");
 ## Future TODOs
 - Evolve from perceptron to neural network ✅
 - Generalize neural network operations ✅
-- Save/Load model from disk ✅:w
+- Save/Load model from disk ✅
 - Better I/O utility for large datasets.
 - Integration with CUDA.
 - Ability to read images(MNIST!), and other media to detect features.
