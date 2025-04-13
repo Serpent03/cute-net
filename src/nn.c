@@ -105,6 +105,9 @@ void save_network(Network *n, char *file) {
   fptr = fopen(file, "wb");
   if (!fptr) return;
 
+  for (int i = 0; i < n->num_layers; i++) {
+    printf("%d\n", n->num_neurons_per_layer[i]);
+  }
   write_section(n->num_neurons_per_layer, sizeof(uint32), n->num_layers, fptr); /* architecture */
 
   uint32 num_weights = 0;
@@ -150,16 +153,16 @@ Network *load_network(char *file) {
   
   uint32 cursor = 0; /* this will track the position of the cursor in the file. */
   uint32 num_layers;
-  uint32 *layers = (uint32*)read_section(layers, sizeof(uint32), fptr, &cursor, &num_layers);
+  uint32 *layers = (uint32*)read_section(sizeof(uint32), fptr, &cursor, &num_layers);
 
   uint32 num_weights;
-  float64 *weights = (float64*)read_section(weights, sizeof(float64), fptr, &cursor, &num_weights);
+  float64 *weights = (float64*)read_section(sizeof(float64), fptr, &cursor, &num_weights);
 
   uint32 num_biases;
-  float64 *biases = (float64*)read_section(biases, sizeof(float64), fptr, &cursor, &num_biases);
+  float64 *biases = (float64*)read_section(sizeof(float64), fptr, &cursor, &num_biases);
 
   uint32 misc_length;
-  float32 *misc = (float32*)read_section(misc, sizeof(float32), fptr, &cursor, &misc_length);
+  float32 *misc = (float32*)read_section(sizeof(float32), fptr, &cursor, &misc_length);
   /* contains activation type and learning rate. */
 
   uint32 activation_type = (uint32)misc[0];
@@ -300,7 +303,7 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
         }
         printf("\n====\n");
       }
-
+    
       free(retdata); /* <== this is important! if we don't free it, we're looking at a LOT of memory leakage. */
     }
     // debug_network(network);

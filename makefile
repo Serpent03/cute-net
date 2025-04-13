@@ -10,8 +10,11 @@ ccflags = -Wall
 main: $(source)
 	$(cc) $(ccflags) -o $(build)$@ $^ $(lib)
 
+debug: $(source)
+	$(cc) -g $(ccflags) -o $(build)$@ $^ $(lib)
+
 run:
 	$(build)main
 
 clean:
-	$(bash) "rm -rf ./build/main*"
+	$(bash) "rm -rf ./build/*"
