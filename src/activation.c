@@ -1,4 +1,4 @@
-#include "../include/nn.h"
+#include "../include/common.h"
 #include <math.h>
 
 float64 leakyRELU(float64 value) {

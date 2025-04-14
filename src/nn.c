@@ -105,9 +105,6 @@ void save_network(Network *n, char *file) {
   fptr = fopen(file, "wb");
   if (!fptr) return;
 
-  for (int i = 0; i < n->num_layers; i++) {
-    printf("%d\n", n->num_neurons_per_layer[i]);
-  }
   write_section(n->num_neurons_per_layer, sizeof(uint32), n->num_layers, fptr); /* architecture */
 
   uint32 num_weights = 0;
@@ -332,9 +329,3 @@ void populate_input(float64 *data, uint32 len, Network *network) {
   }
 }
 
-/*
-With the backpropagation and training taken care of, the next step would be to solidify the 
-permanence of the model - currently it all exists in the runtime, instead on the disk, so to load it
-again on the next run we will need to save the architecture to file and then save the weights; so next time
-we run the functions, we can easily transfer all of that to the functions.
-*/
