@@ -111,6 +111,11 @@ void train_network(Network *network, float64 **training_data, uint32 training_da
   >> For each index i of the <<weights>> list, multiply it by the ith <<Neuron>> in the current <<Layer>>
   >> Get the summation, and apply activation functions, and then put it in the <<Neuron>> in the next layer.
 */
-
 void populate_input(float64 *data, uint32 len, Network *network);
+
+/**
+ * @brief Free the network N.
+*/
+void free_network(Network *n);
 void debug_network(Network *network);
+

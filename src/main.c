@@ -6,14 +6,18 @@
 float64 **convert_2d_stack_array_to_heap(float64 *arr, uint32 row, uint32 col) {
   float64 **a = (float64**)malloc(row * sizeof(float64*));
   for (uint32 r = 0; r < row; r++) {
-    // a[r] = (float64*)malloc(col * sizeof(float64));
-    // memcpy(a[r], &arr[r * col], col);
-    a[r] = &arr[r * col];
+    a[r] = (float64*)malloc(col * sizeof(float64));
+    memcpy(a[r], &arr[r * col], col * sizeof(float64));
   }
   return a;
 }
 
-void free_2d_heap_array() {
+void free_2d_heap_array(float64 **a, uint32 row, uint32 col) {
+  for (uint32 r = 0; r < row; r++) {
+    if (a[r] != NULL) free(a[r]);
+  }
+  if (a != NULL) free(a);
+
   return;
 }
 
@@ -25,7 +29,7 @@ int main() {
   uint32 input_neuron = layers[0];
   uint32 output_neuron = layers[network_wibr - 1];
 
-  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.01);
+  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.05);
 
   /* convert this stack-based array to a heap() allocated array,
    * since the <<train_network>> function expects a heap-allocated
@@ -50,15 +54,16 @@ int main() {
   uint32 output_layer_size = 1;
   uint32 batches = 4;
   train_network(
-        nn, 
-        training_data_heap, 
-        input_layer_size, 
-        batches, 
-        testing_data_heap, 
-        output_layer_size, 
-        10000
-      );
+      nn, 
+      training_data_heap, 
+      input_layer_size, 
+      batches, 
+      testing_data_heap, 
+      output_layer_size, 
+      10000
+  );
   save_network(nn, "./network/network.net");
+  free_network(nn);
 
   Network *copy = load_network("./network/network.net");
 

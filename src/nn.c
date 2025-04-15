@@ -91,6 +91,30 @@ Network *init_network(uint32 *num_neurons_per_layer, uint32 num_layers, uint8 ac
   return n;
 }
 
+void free_network(Network *n) {
+  // free layers/neurons
+  for (uint32 l = 0; l < n->num_layers; l++) {
+    for (uint32 l_n = 0; l_n < n->num_neurons_per_layer[l]; l_n++) {
+      free(n->layers[l]->neurons[l_n]->weights);
+    }
+    free(n->layers[l]);
+  }
+
+  // free training
+  for (uint32 i = 0; i < n->num_layers - 1; i++) {
+    free(n->training->delta[i]);
+  }
+  free(n->training->delta);
+  free(n->training->loss);
+  
+  // free other data structures
+  free(n->num_neurons_per_layer);
+  free(n->layers);
+  free(n->training);
+  free(n);
+  return;
+}
+
 /*
   The data structure of the file being saved to disk is divided into certain sections:
   - Number of neurons per layer, in an array format
