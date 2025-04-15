@@ -8,7 +8,7 @@ cc = gcc
 ccflags = -Wall
 
 main: $(source)
-	$(cc) $(ccflags) -o $(build)$@ $^ $(lib)
+	$(cc) -O3 $(ccflags) -o $(build)$@ $^ $(lib)
 
 debug: $(source)
 	$(cc) -g $(ccflags) -o $(build)$@ $^ $(lib)
