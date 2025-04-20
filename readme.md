@@ -1,4 +1,3 @@
-
 # Cute-Net
 Cute-Net is a simple neural network made in C that is able to perform deep neural network learning using generalized functions.
 
@@ -22,6 +21,12 @@ Before starting, build the project using `make`, and run the project using `make
 There are two files of main interest:
 - `nn.h`: All the headers, definitions and structures are stored in this file.
 - `nn.c`: All functions, neural network logic and other relevant material are defined here.
+
+## Building
+
+The library(libcutenet) can also be built using the provided makefile. Use the command
+`make cn` to create the static library. This can then be linked with your own project
+where you might find use for it.
 
 ## How does it work?
 

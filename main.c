@@ -1,4 +1,4 @@
-#include "../include/nn.h"
+#include "include/nn.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +29,7 @@ int main() {
   uint32 input_neuron = layers[0];
   uint32 output_neuron = layers[network_wibr - 1];
 
-  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.05);
+  Network *nn = init_network(layers, network_wibr, ACTIVATION_RELU, 0.01);
 
   /* convert this stack-based array to a heap() allocated array,
    * since the <<train_network>> function expects a heap-allocated

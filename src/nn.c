@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
-#include <math.h>
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
